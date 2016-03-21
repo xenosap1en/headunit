@@ -39,30 +39,15 @@ char *chan_get(int chan)
 int transport_type = 1; // 1=USB 2=WiFi
 int ihu_tra_recv(byte *buf, int len, int tmo)
 {
-	if (transport_type == 1)
-		return (hu_usb_recv(buf, len, tmo));
-	else if (transport_type == 2)
-		return (hu_tcp_recv(buf, len, tmo));
-	else
-		return (-1);
+	return (hu_usb_recv(buf, len, tmo));
 }
 int ihu_tra_send(byte *buf, int len, int tmo)
 {
-	if (transport_type == 1)
-		return (hu_usb_send(buf, len, tmo));
-	else if (transport_type == 2)
-		return (hu_tcp_send(buf, len, tmo));
-	else
-		return (-1);
+	return (hu_usb_send(buf, len, tmo));
 }
 int ihu_tra_stop()
 {
-	if (transport_type == 1)
-		return (hu_usb_stop());
-	else if (transport_type == 2)
-		return (hu_tcp_stop());
-	else
-		return (-1);
+	return (hu_usb_stop());
 }
 
 int iaap_tra_recv_tmo = 150; // 100;//1;//10;//100;//250;//100;//250;//100;//25; // 10 doesn't work ? 100 does
@@ -84,12 +69,7 @@ int ihu_tra_start(byte ep_in_addr, byte ep_out_addr)
 		iaap_tra_recv_tmo = 150; // 100;
 		iaap_tra_send_tmo = 250;
 	}
-	if (transport_type == 1)
-		return (hu_usb_start(ep_in_addr, ep_out_addr));
-	else if (transport_type == 2)
-		return (hu_tcp_start(ep_in_addr, ep_out_addr));
-	else
-		return (-1);
+	return (hu_usb_start(ep_in_addr, ep_out_addr));
 }
 
 byte enc_buf[DEFBUF] = {0}; // Global encrypted transmit data buffer
@@ -415,7 +395,6 @@ int aa_pro_ctr_a04(int chan, byte *buf, int len)
 	return (-1);
 }
 
-extern int wifi_direct; // = 0;//1;//0;
 int aa_pro_ctr_a05(int chan, byte *buf, int len)
 { // Service Discovery Request
 	if (len < 4 || buf[2] != 0x0a)
@@ -424,7 +403,7 @@ int aa_pro_ctr_a05(int chan, byte *buf, int len)
 		logd("Service Discovery Request"); // S 0 CTR b src: HU  lft:   113  msg_type:     6 Service Discovery Response    S 0 CTR b 00000000 0a 08 08 01 12 04 0a 02 08 0b 0a 13 08 02 1a 0f
 
 	int sd_buf_len = sizeof(sd_buf);
-	if (wifi_direct && (file_get("/data/data/ca.yyx.hu/files/nfc_wifi") || file_get("/sdcard/hu_disable_audio_out"))) // If self or disable file exists...
+	if (file_get("/sdcard/hu_disable_audio_out")) // If self or disable file exists...
 		sd_buf_len -= sd_buf_aud_len;										  // Remove audio outputs from service discovery response buf
 
 	return (hu_aap_enc_send(chan, sd_buf, sd_buf_len)); // Send Service Discovery Response from sd_buf
