@@ -1,45 +1,45 @@
 
-  /*
+/*
 
 
-    N91:
-      al    /data/app/com.google.android.gms-1/lib/arm/libsslwrapper_jni*
-      #a cp  /data/app/com.google.android.gms-1/lib/arm/libsslwrapper_jni.so  /data/app/com.google.android.gms-1/lib/arm/libsslwrapper_jnio.so
-      adb push               ~/dev/hu/libs/armeabi/libsslwrapper_jni.so  /data/app/com.google.android.gms-1/lib/arm/libsslwrapper_jni.so
-      al   /data/app/com.google.android.gms-1/lib/arm/libsslwrapper_jni*
+  N91:
+    al    /data/app/com.google.android.gms-1/lib/arm/libsslwrapper_jni*
+    #a cp  /data/app/com.google.android.gms-1/lib/arm/libsslwrapper_jni.so  /data/app/com.google.android.gms-1/lib/arm/libsslwrapper_jnio.so
+    adb push               ~/dev/hu/libs/armeabi/libsslwrapper_jni.so  /data/app/com.google.android.gms-1/lib/arm/libsslwrapper_jni.so
+    al   /data/app/com.google.android.gms-1/lib/arm/libsslwrapper_jni*
 
-    OM8:
-      al    /data/app/com.google.android.gms-1/lib/arm/libsslwrapper_jni*
-      a su -c mount -o remount,rw /system
-      adb push ~/dev/hu/libs/armeabi/ /data/local/tmp
-      a su -c cp /data/local/tmp/libsslwrapper_jni.so /data/app/com.google.android.gms-1/lib/arm/
-      al    /data/app/com.google.android.gms-1/lib/arm/libsslwrapper_jni*
-      a ps|grep gms
-
-
-    OLD:
-      al    /system/priv-app/PrebuiltGmsCore/lib/arm//libsslwrapper_jni*
-      a su -c mount -o remount,rw /system
-      #a cp  /system/priv-app/PrebuiltGmsCore/lib/arm/libsslwrapper_jni.so  /system/priv-app/PrebuiltGmsCore/lib/arm//libsslwrapper_jnio.so
-      adb push             ~/dev/hu/libs/armeabi/libsslwrapper_jni.so  /system/priv-app/PrebuiltGmsCore/lib/arm//libsslwrapper_jni.so
-      al    /system/priv-app/PrebuiltGmsCore/lib/arm/libsslwrapper_jni*
+  OM8:
+    al    /data/app/com.google.android.gms-1/lib/arm/libsslwrapper_jni*
+    a su -c mount -o remount,rw /system
+    adb push ~/dev/hu/libs/armeabi/ /data/local/tmp
+    a su -c cp /data/local/tmp/libsslwrapper_jni.so /data/app/com.google.android.gms-1/lib/arm/
+    al    /data/app/com.google.android.gms-1/lib/arm/libsslwrapper_jni*
+    a ps|grep gms
 
 
-
-    al /sys/kernel/debug/usb/usbmon/
-
-    a cat /sys/kernel/debug/usb/usbmon/0u
-
-    a cat /sys/kernel/debug/usb/devices
-
-  GS3:
-
-  cat /sys/kernel/debug/usb/usbmon/0u > /sdcard/aa0u &
+  OLD:
+    al    /system/priv-app/PrebuiltGmsCore/lib/arm//libsslwrapper_jni*
+    a su -c mount -o remount,rw /system
+    #a cp  /system/priv-app/PrebuiltGmsCore/lib/arm/libsslwrapper_jni.so  /system/priv-app/PrebuiltGmsCore/lib/arm//libsslwrapper_jnio.so
+    adb push             ~/dev/hu/libs/armeabi/libsslwrapper_jni.so  /system/priv-app/PrebuiltGmsCore/lib/arm//libsslwrapper_jni.so
+    al    /system/priv-app/PrebuiltGmsCore/lib/arm/libsslwrapper_jni*
 
 
 
-  a "echo Y > sys/module/usbcore/parameters/usbfs_snoop"
-  a cat sys/module/usbcore/parameters/usbfs_snoop
+  al /sys/kernel/debug/usb/usbmon/
+
+  a cat /sys/kernel/debug/usb/usbmon/0u
+
+  a cat /sys/kernel/debug/usb/devices
+
+GS3:
+
+cat /sys/kernel/debug/usb/usbmon/0u > /sdcard/aa0u &
+
+
+
+a "echo Y > sys/module/usbcore/parameters/usbfs_snoop"
+a cat sys/module/usbcore/parameters/usbfs_snoop
 
 
 
@@ -100,24 +100,23 @@ E:  Ad=84(I) Atr=02(Bulk) MxPS= 512 Ivl=0ms
 E:  Ad=04(O) Atr=02(Bulk) MxPS= 512 Ivl=0ms
 
 
-  */
+*/
 
+#define LOGTAG "sslw"
 
-  #define LOGTAG "sslw"
+#include <dlfcn.h>
+#include <stdio.h>
+#include <errno.h>
+#include <fcntl.h>
+#include <sys/stat.h>
+#include <sys/resource.h>
 
-  #include <dlfcn.h>
-  #include <stdio.h>
-  #include <errno.h>
-  #include <fcntl.h>
-  #include <sys/stat.h>
-  #include <sys/resource.h>
+#include <jni.h>
 
-  #include <jni.h>
+#include "hu_uti.h"
+#include "hu_aad.h"
 
-  #include "hu_uti.h"
-  #include "hu_aad.h"
-
-  const char * copyright = "Copyright (c) 2011-2015 Michael A. Reid. All rights reserved.";
+const char *copyright = "Copyright (c) 2011-2015 Michael A. Reid. All rights reserved.";
 /*
   char prop_buf    [DEF_BUF] = "";
 
@@ -160,369 +159,412 @@ E:  Ad=04(O) Atr=02(Bulk) MxPS= 512 Ivl=0ms
   }
 */
 
-  int ssl_init_done = 0;
-  void * ssl_fd     = NULL;
-  char lib_name1 [DEF_BUF] = "/data/app/com.google.android.gms-1/lib/arm/libsslwrapper_jnio.so";
-  char lib_name2 [DEF_BUF] = "/data/app/com.google.android.gms-2/lib/arm/libsslwrapper_jnio.so"; 
-  char * lib_name = lib_name1;
+int ssl_init_done = 0;
+void *ssl_fd = NULL;
+char lib_name1[DEF_BUF] = "/data/app/com.google.android.gms-1/lib/arm/libsslwrapper_jnio.so";
+char lib_name2[DEF_BUF] = "/data/app/com.google.android.gms-2/lib/arm/libsslwrapper_jnio.so";
+char *lib_name = lib_name1;
 
-  //typedef jint (* Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeInit_t) (JNIEnv * env, jobject thiz, jstring pemPublicKeyCert1, jstring pemPublicKeyCert2, jbyteArray binPrivateKey);
-  //Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeInit_t Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeInit_o = NULL;
+// typedef jint (* Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeInit_t) (JNIEnv * env, jobject thiz, jstring pemPublicKeyCert1, jstring pemPublicKeyCert2, jbyteArray binPrivateKey);
+// Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeInit_t Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeInit_o = NULL;
 
-  jint (* Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeInit_o                      ) (JNIEnv * env, jobject thiz, jstring pemPublicKeyCert1, jstring pemPublicKeyCert2, jbyteArray binPrivateKey);
+jint (*Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeInit_o)(JNIEnv *env, jobject thiz, jstring pemPublicKeyCert1, jstring pemPublicKeyCert2, jbyteArray binPrivateKey);
 
-  jint (* Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeHandshakeDataEnqueue_o      ) (JNIEnv * env, jobject thiz, jobject bBuf, jint idx, jint len);
-  jint (* Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeHandshake_o                 ) (JNIEnv * env, jobject thiz)                                  ;
-  void (* Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeHandshakeDataDequeue_o      ) (JNIEnv * env, jobject thiz, jobject bBuf, jint len)          ; // Get handshake response
+jint (*Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeHandshakeDataEnqueue_o)(JNIEnv *env, jobject thiz, jobject bBuf, jint idx, jint len);
+jint (*Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeHandshake_o)(JNIEnv *env, jobject thiz);
+void (*Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeHandshakeDataDequeue_o)(JNIEnv *env, jobject thiz, jobject bBuf, jint len); // Get handshake response
 
-  jint (* Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeDecryptionPipelineEnqueue_o ) (JNIEnv * env, jobject thiz, jobject bBuf, jint len)          ; // Return len
-  jint (* Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeDecryptionPipelinePending_o ) (JNIEnv * env, jobject thiz)                                  ; // Return len
-  jint (* Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeDecryptionPipelineDequeue_o ) (JNIEnv * env, jobject thiz, jobject bBuf, jint len)          ; // Return len
+jint (*Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeDecryptionPipelineEnqueue_o)(JNIEnv *env, jobject thiz, jobject bBuf, jint len); // Return len
+jint (*Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeDecryptionPipelinePending_o)(JNIEnv *env, jobject thiz);				// Return len
+jint (*Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeDecryptionPipelineDequeue_o)(JNIEnv *env, jobject thiz, jobject bBuf, jint len); // Return len
 
-  jint (* Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeEncryptionPipelineEnqueue_o ) (JNIEnv * env, jobject thiz, jobject bBuf, jint idx, jint len); // Return len
-  jint (* Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeEncryptionPipelineDequeue_o ) (JNIEnv * env, jobject thiz, jobject bBuf, jint len)          ; // Return len
+jint (*Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeEncryptionPipelineEnqueue_o)(JNIEnv *env, jobject thiz, jobject bBuf, jint idx, jint len); // Return len
+jint (*Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeEncryptionPipelineDequeue_o)(JNIEnv *env, jobject thiz, jobject bBuf, jint len);		  // Return len
 
-  int neuter = 0;     // 0 = Shim mode to monitor AA<>HU      1 = Neuter encryption for HUE testing
+int neuter = 0; // 0 = Shim mode to monitor AA<>HU      1 = Neuter encryption for HUE testing
 
-  int ssl_init () {
+int ssl_init()
+{
 
-    if (ssl_init_done)
-      return (0);
+	if (ssl_init_done)
+		return (0);
 
-    ssl_init_done = 1;
+	ssl_init_done = 1;
 
-    if (file_get ("/sdcard/aaneuter")) {
-      neuter = 1;
-      logd ("neuter encryption mode");
-      return (0);
-    }
-    else {
-      neuter = 0;
-      logd ("pass-through shim mode");
-    }
+	if (file_get("/sdcard/aaneuter"))
+	{
+		neuter = 1;
+		logd("neuter encryption mode");
+		return (0);
+	}
+	else
+	{
+		neuter = 0;
+		logd("pass-through shim mode");
+	}
 
-    lib_name = lib_name1;
-    if (! file_get (lib_name))
-      lib_name = lib_name2;
+	lib_name = lib_name1;
+	if (!file_get(lib_name))
+		lib_name = lib_name2;
 
-    ssl_fd = dlopen (lib_name, RTLD_LAZY);                              // Load library
-    if (ssl_fd == NULL) {
-      loge ("Could not load library '%s'", lib_name);
-      return (-1);
-    }
-    logd ("Loaded %s  ssl_fd: %d", lib_name, ssl_fd);
+	ssl_fd = dlopen(lib_name, RTLD_LAZY); // Load library
+	if (ssl_fd == NULL)
+	{
+		loge("Could not load library '%s'", lib_name);
+		return (-1);
+	}
+	logd("Loaded %s  ssl_fd: %d", lib_name, ssl_fd);
 
-    Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeInit_o                      = dlsym (ssl_fd, "Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeInit");
-    Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeHandshakeDataEnqueue_o      = dlsym (ssl_fd, "Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeHandshakeDataEnqueue");
-    Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeHandshake_o                 = dlsym (ssl_fd, "Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeHandshake");
-    Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeHandshakeDataDequeue_o      = dlsym (ssl_fd, "Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeHandshakeDataDequeue");
-    Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeDecryptionPipelineEnqueue_o = dlsym (ssl_fd, "Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeDecryptionPipelineEnqueue");
-    Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeDecryptionPipelinePending_o = dlsym (ssl_fd, "Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeDecryptionPipelinePending");
-    Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeDecryptionPipelineDequeue_o = dlsym (ssl_fd, "Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeDecryptionPipelineDequeue");
-    Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeEncryptionPipelineEnqueue_o = dlsym (ssl_fd, "Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeEncryptionPipelineEnqueue");
-    Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeEncryptionPipelineDequeue_o = dlsym (ssl_fd, "Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeEncryptionPipelineDequeue");
+	Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeInit_o = dlsym(ssl_fd, "Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeInit");
+	Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeHandshakeDataEnqueue_o = dlsym(ssl_fd, "Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeHandshakeDataEnqueue");
+	Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeHandshake_o = dlsym(ssl_fd, "Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeHandshake");
+	Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeHandshakeDataDequeue_o = dlsym(ssl_fd, "Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeHandshakeDataDequeue");
+	Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeDecryptionPipelineEnqueue_o =
+	    dlsym(ssl_fd, "Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeDecryptionPipelineEnqueue");
+	Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeDecryptionPipelinePending_o =
+	    dlsym(ssl_fd, "Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeDecryptionPipelinePending");
+	Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeDecryptionPipelineDequeue_o =
+	    dlsym(ssl_fd, "Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeDecryptionPipelineDequeue");
+	Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeEncryptionPipelineEnqueue_o =
+	    dlsym(ssl_fd, "Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeEncryptionPipelineEnqueue");
+	Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeEncryptionPipelineDequeue_o =
+	    dlsym(ssl_fd, "Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeEncryptionPipelineDequeue");
 
+	if (!Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeInit_o)
+		loge("No Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeInit");
+	if (!Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeHandshakeDataEnqueue_o)
+		loge("No Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeHandshakeDataEnqueue");
+	if (!Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeHandshake_o)
+		loge("No Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeHandshake");
+	if (!Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeHandshakeDataDequeue_o)
+		loge("No Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeHandshakeDataDequeue");
+	if (!Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeDecryptionPipelineEnqueue_o)
+		loge("No Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeDecryptionPipelineEnqueue");
+	if (!Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeDecryptionPipelinePending_o)
+		loge("No Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeDecryptionPipelinePending");
+	if (!Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeDecryptionPipelineDequeue_o)
+		loge("No Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeDecryptionPipelineDequeue");
+	if (!Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeEncryptionPipelineEnqueue_o)
+		loge("No Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeEncryptionPipelineEnqueue");
+	if (!Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeEncryptionPipelineDequeue_o)
+		loge("No Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeEncryptionPipelineDequeue");
+}
 
-    if (! Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeInit_o                     ) loge ("No Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeInit");
-    if (! Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeHandshakeDataEnqueue_o     ) loge ("No Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeHandshakeDataEnqueue");
-    if (! Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeHandshake_o                ) loge ("No Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeHandshake");
-    if (! Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeHandshakeDataDequeue_o     ) loge ("No Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeHandshakeDataDequeue");
-    if (! Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeDecryptionPipelineEnqueue_o) loge ("No Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeDecryptionPipelineEnqueue");
-    if (! Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeDecryptionPipelinePending_o) loge ("No Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeDecryptionPipelinePending");
-    if (! Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeDecryptionPipelineDequeue_o) loge ("No Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeDecryptionPipelineDequeue");
-    if (! Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeEncryptionPipelineEnqueue_o) loge ("No Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeEncryptionPipelineEnqueue");
-    if (! Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeEncryptionPipelineDequeue_o) loge ("No Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeEncryptionPipelineDequeue");
-  }
+int en_dump_init = 1;
+int en_dump_hs = 1;
+int en_dump_data = 1;
 
+unsigned char bytear_buf[65536] = {0};
+int max_dump_ba = 65536;
 
+int logd_jstring(JNIEnv *env, char *prefix, jstring java_string)
+{
+	const char *c_string = (*env)->GetStringUTFChars(env, java_string, 0);
+	logd("%s %s  ", prefix, c_string);
+	(*env)->ReleaseStringUTFChars(env, java_string, c_string);
+	return (0);
+}
 
-  int en_dump_init = 1;
-  int en_dump_hs   = 1;
-  int en_dump_data = 1;
+int logd_jbytear(JNIEnv *env, char *prefix, jbyteArray java_bytear)
+{
+	jint len = (*env)->GetArrayLength(env, java_bytear);
+	(*env)->GetByteArrayRegion(env, java_bytear, 0, len, (jbyte *)bytear_buf);
+	logd("%s len: %d", prefix, len);
+	if (len > max_dump_ba)
+		len = max_dump_ba;
+	hex_dump(prefix, 16, (unsigned char *)&bytear_buf, len);
+	return (0);
+}
 
-  unsigned char bytear_buf [65536] = {0};
-  int max_dump_ba = 65536;
+int jbytebu_num_dumps = 0;
+int jbytebu_max_dumps = 64; // 256;//1024;
+int max_dump_jbytebu_hs = 16384; // 4096;//64;  // max bytes to dump
 
-  int logd_jstring (JNIEnv * env, char * prefix, jstring java_string) {
-    const char * c_string = (*env)->GetStringUTFChars (env, java_string, 0);
-    logd ("%s %s  ", prefix, c_string);
-   (*env)->ReleaseStringUTFChars (env, java_string, c_string);
-    return (0);
-  }
+int logd_jbytebu(JNIEnv *env, char *prefix, jobject java_bytebu, jint idx, jint len, unsigned char *src)
+{
+	if (jbytebu_num_dumps++ >= jbytebu_max_dumps)
+	{
+		if (!file_get("/sdcard/aanomax"))
+			return (0);
+	}
+	unsigned char *buf = (unsigned char *)(*env)->GetDirectBufferAddress(env, java_bytebu); // ByteBuffer must be created using an allocateDirect() factory method
 
-  int logd_jbytear (JNIEnv * env, char * prefix, jbyteArray java_bytear) {
-    jint len = (*env)->GetArrayLength (env, java_bytear);
-    (*env)->GetByteArrayRegion (env, java_bytear, 0, len, (jbyte *) bytear_buf);
-    logd ("%s len: %d", prefix, len);
-    if (len > max_dump_ba)
-      len = max_dump_ba;
-    hex_dump (prefix, 16, (unsigned char *) & bytear_buf, len);
-    return (0);
-  }
+	if (jbytebu_num_dumps > 64 && !file_get("/sdcard/aaall"))
+	{
+		if (*src == 'A' && buf[0] == 0x00 && (buf[1] == 0 || buf[1] == 1)) // Tx Video
+			return (0);
+		if (*src == 'H' && buf[0] == 0x80 && buf[1] == 0x04) // Rx Video Ack
+			return (0);
+		if (*src == 'H' && buf[0] == 0x00 && buf[1] == 0x0b) // Rx Ping request
+			return (0);
+		if (*src == 'A' && buf[0] == 0x00 && buf[1] == 0x0c) // Tx Ping response
+			return (0);
+	}
 
+	if (ena_log_verbo || len > 48)
+		logd("%s buf: %p  idx: %d  len: %d", prefix, buf, idx, len);
+	if (buf == NULL || len <= 0)
+		return (0);
 
-  int jbytebu_num_dumps = 0;
-  int jbytebu_max_dumps = 64;//256;//1024;
-  int max_dump_jbytebu_hs = 16384;//4096;//64;  // max bytes to dump
+	if (*src == 'H' || *src == 'A') // If Rx or Tx...
+		hu_aad_dmp(prefix, src, 0, 0, &buf[idx], len);
+	else
+	{
+		int dumplen = len;
+		if (len > max_dump_jbytebu_hs)
+			dumplen = max_dump_jbytebu_hs;
+		hex_dump(prefix, 16, &buf[idx], dumplen);
+	}
 
-  int logd_jbytebu (JNIEnv * env, char * prefix, jobject java_bytebu, jint idx, jint len, unsigned char * src) {
-    if (jbytebu_num_dumps ++ >= jbytebu_max_dumps) {
-      if (! file_get ("/sdcard/aanomax"))
-        return (0);
-    }
-    unsigned char * buf = (unsigned char *) (*env)->GetDirectBufferAddress (env, java_bytebu);// ByteBuffer must be created using an allocateDirect() factory method
+	return (0);
+}
 
-    if (jbytebu_num_dumps > 64 && ! file_get ("/sdcard/aaall")) {
-      if (* src == 'A' && buf [0] == 0x00 && (buf [1] == 0 || buf [1] == 1)) // Tx Video
-        return (0);
-      if (* src == 'H' && buf [0] == 0x80 && buf [1] == 0x04)                // Rx Video Ack
-        return (0);
-      if (* src == 'H' && buf [0] == 0x00 && buf [1] == 0x0b)                // Rx Ping request
-        return (0);
-      if (* src == 'A' && buf [0] == 0x00 && buf [1] == 0x0c)                // Tx Ping response
-        return (0);
-    }
+jint Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeInit(JNIEnv *env, jobject thiz, jstring pemPublicKeyCert1, jstring pemPublicKeyCert2, jbyteArray binPrivateKey)
+{
+	ssl_init();
 
-    if (ena_log_verbo || len > 48)
-      logd ("%s buf: %p  idx: %d  len: %d", prefix, buf, idx, len);
-    if (buf == NULL || len <= 0)
-      return (0);
+	if (en_dump_init)
+	{
+		logd_jstring(env, "Init pemPublicKeyCert1: ", pemPublicKeyCert1);
+		logd_jstring(env, "Init pemPublicKeyCert2: ", pemPublicKeyCert2);
+		logd_jbytear(env, "Init binPrivateKey:     ", binPrivateKey);
+	}
 
-    if (* src == 'H' || * src == 'A')                                         // If Rx or Tx...
-      hu_aad_dmp (prefix, src, 0, 0, & buf [idx], len);
-    else {
-      int dumplen = len;
-      if (len > max_dump_jbytebu_hs)
-        dumplen = max_dump_jbytebu_hs;
-      hex_dump (prefix, 16, & buf [idx], dumplen);
-    }
+	jint ret = -1;
+	if (neuter)
+	{
+		ret = JNI_TRUE;
+		logd("INIT !!!!!!!!!!!!!!!!!!!!!!!!    Init ret: %d", ret);
+		return (ret); // Return true on success
+	}
 
-    return (0);
-  }
+	if (Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeInit_o)
+		ret = Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeInit_o(env, thiz, pemPublicKeyCert1, pemPublicKeyCert2, binPrivateKey);
+	else
+		loge("NO %s", __func__);
+	logd("Init ret: %d", ret);
+	return (ret);
+}
 
-  jint Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeInit (JNIEnv * env, jobject thiz, jstring pemPublicKeyCert1, jstring pemPublicKeyCert2, jbyteArray binPrivateKey) {
-    ssl_init ();
+void Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeHandshakeDataEnqueue(JNIEnv *env, jobject thiz, jobject bBuf, jint idx, jint len)
+{ // Pass handshake request
 
-    if (en_dump_init) {
-      logd_jstring (env, "Init pemPublicKeyCert1: ", pemPublicKeyCert1);
-      logd_jstring (env, "Init pemPublicKeyCert2: ", pemPublicKeyCert2);
-      logd_jbytear (env, "Init binPrivateKey:     ", binPrivateKey);
-    }
+	if (en_dump_hs)
+		logd_jbytebu(env, "HE: ", bBuf, idx, len, "AA");
+	else
+		logd("HE bBuf: %p  idx: %d  len: %d", bBuf, idx, len);
 
-    jint ret = -1;
-    if (neuter) {
-      ret = JNI_TRUE;
-      logd ("INIT !!!!!!!!!!!!!!!!!!!!!!!!    Init ret: %d", ret);
-      return (ret);                                                // Return true on success
-    }
+	if (neuter)
+		return;
 
-    if (Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeInit_o)
-      ret = Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeInit_o (env, thiz, pemPublicKeyCert1, pemPublicKeyCert2, binPrivateKey);
-    else
-      loge ("NO %s", __func__);
-    logd ("Init ret: %d", ret);
-    return (ret);
-  }
+	if (Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeHandshakeDataEnqueue_o)
+		Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeHandshakeDataEnqueue_o(env, thiz, bBuf, idx, len);
+	else
+		loge("NO %s", __func__);
+}
 
-  void Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeHandshakeDataEnqueue (JNIEnv * env, jobject thiz, jobject bBuf, jint idx, jint len) { // Pass handshake request
+jint Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeHandshake(JNIEnv *env, jobject thiz)
+{ // Return len of handshake response
+	jint retlen = -1;
+	if (neuter)
+	{
+		retlen = 8;
+		logd("HS retlen: %d", retlen);
+		return (retlen);
+	}
 
-    if (en_dump_hs)
-      logd_jbytebu (env, "HE: ", bBuf, idx, len, "AA");
-    else
-      logd ("HE bBuf: %p  idx: %d  len: %d", bBuf, idx, len);
+	if (Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeHandshake_o)
+		retlen = Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeHandshake_o(env, thiz);
+	else
+		loge("NO %s", __func__);
 
-    if (neuter) 
-      return;
+	logd("HS retlen: %d", retlen);
+	return (retlen);
+}
+void Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeHandshakeDataDequeue(JNIEnv *env, jobject thiz, jobject bBuf, jint len)
+{ // Get handshake response
 
-    if (Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeHandshakeDataEnqueue_o)
-      Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeHandshakeDataEnqueue_o (env, thiz, bBuf, idx, len);
-    else
-      loge ("NO %s", __func__);
-  }
+	if (neuter)
+	{
+		logd("HD passed len: %d", len);
+		return;
+	}
 
-  jint Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeHandshake (JNIEnv * env, jobject thiz) {                                    // Return len of handshake response
-    jint retlen = -1;
-    if (neuter) {
-      retlen = 8;
-      logd ("HS retlen: %d", retlen);
-      return (retlen);
-    }
+	if (Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeHandshakeDataDequeue_o)
+		Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeHandshakeDataDequeue_o(env, thiz, bBuf, len);
+	else
+		loge("NO %s", __func__);
 
-    if (Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeHandshake_o)
-      retlen = Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeHandshake_o (env, thiz);
-    else
-      loge ("NO %s", __func__);
+	if (en_dump_hs)
+		logd_jbytebu(env, "HD: ", bBuf, 0, len, "AA");
+	else
+		logd("HD passed len: %d", len);
+}
 
-    logd ("HS retlen: %d", retlen);
-    return (retlen);
-  }
-  void Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeHandshakeDataDequeue (JNIEnv * env, jobject thiz, jobject bBuf, jint len) {           // Get handshake response
+#define MAX_BUF 65536
+jbyte decrypt_buf[MAX_BUF] = {0};
+jint last_decrypt_len = 8;
 
-    if (neuter) {
-      logd ("HD passed len: %d", len);
-      return;
-    }
+jint Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeDecryptionPipelineEnqueue(JNIEnv *env, jobject thiz, jobject bBuf, jint len)
+{ // Return len
+	int retlen = -1;
+	if (ena_log_verbo)
+		logd("DE Rx encrypted passed len: %d", len);
 
-    if (Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeHandshakeDataDequeue_o)
-      Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeHandshakeDataDequeue_o (env, thiz, bBuf, len);
-    else
-      loge ("NO %s", __func__);
+	if (neuter)
+	{
+		jbyte *buf = (jbyte *)(*env)->GetDirectBufferAddress(env, bBuf); // ByteBuffer must be created using an allocateDirect() factory method
+		last_decrypt_len = len;
+		if (len > MAX_BUF)
+		{
+			loge("DecryptionPipelineEnqueue len too large");
+			return (-1);
+		}
+		memcpy(decrypt_buf, buf, len);
+		retlen = len;
+		if (ena_log_verbo)
+			logd("DE Rx retlen: %d", retlen);
+		return (retlen);
+	}
 
-    if (en_dump_hs)
-      logd_jbytebu (env, "HD: ", bBuf, 0, len, "AA");
-    else
-      logd ("HD passed len: %d", len);
-  }
+	if (Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeDecryptionPipelineEnqueue_o)
+		retlen = Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeDecryptionPipelineEnqueue_o(env, thiz, bBuf, len);
+	else
+		loge("NO %s", __func__);
+	if (ena_log_verbo)
+		logd("DE Rx retlen: %d", retlen);
+	return (retlen);
+}
 
-  #define MAX_BUF 65536
-  jbyte decrypt_buf [MAX_BUF] = {0};
-  jint last_decrypt_len = 8;
+jint Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeDecryptionPipelinePending(JNIEnv *env, jobject thiz)
+{ // Return len
+	int retlen = -1;
+	if (neuter)
+	{
+		retlen = last_decrypt_len;
+		if (ena_log_verbo)
+			logd("DP Rx pending retlen: %d", retlen);
+		return (retlen);
+	}
 
-  jint Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeDecryptionPipelineEnqueue (JNIEnv * env, jobject thiz, jobject bBuf, jint len) {           // Return len
-    int retlen = -1;
-    if (ena_log_verbo)
-      logd ("DE Rx encrypted passed len: %d", len);
+	if (Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeDecryptionPipelinePending_o)
+		retlen = Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeDecryptionPipelinePending_o(env, thiz);
+	else
+		loge("NO %s", __func__);
+	if (ena_log_verbo)
+		logd("DP Rx pending retlen: %d", retlen);
+	return (retlen);
+}
 
-    if (neuter) {
-      jbyte * buf = (jbyte *) (* env)->GetDirectBufferAddress (env, bBuf);// ByteBuffer must be created using an allocateDirect() factory method
-      last_decrypt_len = len;
-      if (len > MAX_BUF) {
-        loge ("DecryptionPipelineEnqueue len too large");
-        return (-1);
-      }
-      memcpy (decrypt_buf, buf, len);
-      retlen = len;
-      if (ena_log_verbo)
-        logd ("DE Rx retlen: %d", retlen);
-      return (retlen);
-    }
+jint Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeDecryptionPipelineDequeue(JNIEnv *env, jobject thiz, jobject bBuf, jint len)
+{ // Return len
+	int retlen = -1;
+	if (neuter)
+	{
+		if (len > MAX_BUF)
+		{
+			loge("DecryptionPipelineDequeue len too large");
+			return (-1);
+		}
+		jbyte *buf = (jbyte *)(*env)->GetDirectBufferAddress(env, bBuf); // ByteBuffer must be created using an allocateDirect() factory method
+		retlen = last_decrypt_len;
+		last_decrypt_len = 0;
+		memcpy(buf, decrypt_buf, len);
+		if (en_dump_data)
+			logd_jbytebu(env, "rx: ", bBuf, 0, len, "HU");
+		if (ena_log_verbo)
+			logd("DD Rx decrypted len: %d  retlen: %d", len, retlen);
 
-    if (Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeDecryptionPipelineEnqueue_o)
-      retlen = Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeDecryptionPipelineEnqueue_o (env, thiz, bBuf, len);
-    else
-      loge ("NO %s", __func__);
-    if (ena_log_verbo)
-      logd ("DE Rx retlen: %d", retlen);
-    return (retlen);
-  }
+		return (len); // len is whatever we returned as pending
+	}
 
-  jint Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeDecryptionPipelinePending  (JNIEnv * env, jobject thiz) {                                    // Return len
-    int retlen = -1;
-    if (neuter) {
-      retlen = last_decrypt_len;
-      if (ena_log_verbo)
-        logd ("DP Rx pending retlen: %d", retlen);
-      return (retlen);
-    }
+	if (Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeDecryptionPipelineDequeue_o)
+		retlen = Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeDecryptionPipelineDequeue_o(env, thiz, bBuf, len);
+	else
+		loge("NO %s", __func__);
+	if (en_dump_data)
+		logd_jbytebu(env, "rx: ", bBuf, 0, retlen, "AA");
+	if (ena_log_verbo)
+		logd("DD Rx decrypted len: %d  retlen: %d", len, retlen);
+	return (retlen);
+}
 
-    if (Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeDecryptionPipelinePending_o)
-      retlen = Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeDecryptionPipelinePending_o (env, thiz);
-    else
-      loge ("NO %s", __func__);
-    if (ena_log_verbo)
-      logd ("DP Rx pending retlen: %d", retlen);
-    return (retlen);
-  }
+// jbyte encrypt_buf [MAX_BUF] = {0};
 
-  jint Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeDecryptionPipelineDequeue (JNIEnv * env, jobject thiz, jobject bBuf, jint len) {           // Return len
-    int retlen = -1;
-    if (neuter) {
-      if (len > MAX_BUF) {
-        loge ("DecryptionPipelineDequeue len too large");
-        return (-1);
-      }
-      jbyte * buf = (jbyte *) (* env)->GetDirectBufferAddress (env, bBuf);// ByteBuffer must be created using an allocateDirect() factory method
-      retlen = last_decrypt_len;
-      last_decrypt_len = 0;
-      memcpy (buf, decrypt_buf, len);
-      if (en_dump_data)
-        logd_jbytebu (env, "rx: ", bBuf, 0, len, "HU");
-      if (ena_log_verbo)
-        logd ("DD Rx decrypted len: %d  retlen: %d", len, retlen);
+jint Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeEncryptionPipelineEnqueue(JNIEnv *env, jobject thiz, jobject bBuf, jint idx, jint len)
+{ // Return len
+	int retlen = -1;
+	if (en_dump_data)
+		logd_jbytebu(env, "TX: ", bBuf, idx, len, "AA");
+	if (neuter)
+	{
+		jbyte *encrypt_buf = vid_write_tail_buf_get(len);
+		if (ena_log_verbo)
+			logd("EE Tx encrypt_buf: %p", encrypt_buf);
+		if (encrypt_buf == NULL)
+		{
+			return (0);
+		}
 
-      return (len); // len is whatever we returned as pending
-    }
+		jbyte *buf = (jbyte *)(*env)->GetDirectBufferAddress(env, bBuf); // ByteBuffer must be created using an allocateDirect() factory method
+		// logd ("EncryptionPipelineEnqueue buf: %p  idx: %d  len: %d", buf, idx, len);
+		if (len > MAX_BUF)
+		{
+			loge("EncryptionPipelineEnqueue len too large");
+			return (-1);
+		}
+		memcpy(encrypt_buf, &buf[idx], len);
+		if (en_dump_data && ena_log_verbo)
+			hex_dump("TX: ", 16, encrypt_buf, len);
+		// logd_jbytebu (env, "Tx: ", bBuf, idx, len, "AA");
+		return (len);
+	}
 
-    if (Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeDecryptionPipelineDequeue_o)
-      retlen = Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeDecryptionPipelineDequeue_o (env, thiz, bBuf, len);
-    else
-      loge ("NO %s", __func__);
-    if (en_dump_data)
-      logd_jbytebu (env, "rx: ", bBuf, 0, retlen, "AA");
-    if (ena_log_verbo)
-      logd ("DD Rx decrypted len: %d  retlen: %d", len, retlen);
-    return (retlen);
-  }  
+	if (Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeEncryptionPipelineEnqueue_o)
+		retlen = Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeEncryptionPipelineEnqueue_o(env, thiz, bBuf, idx, len);
+	else
+		loge("NO %s", __func__);
+	if (ena_log_verbo)
+		logd("EE Tx retlen: %d", retlen);
+	return (retlen);
+}
 
-  //jbyte encrypt_buf [MAX_BUF] = {0};
+jint Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeEncryptionPipelineDequeue(JNIEnv *env, jobject thiz, jobject bBuf, jint len)
+{ // Return len
+	if (ena_log_verbo)
+		logd("ED Tx passed len: %d", len);
+	if (neuter)
+	{
+		int retlen = -1;
+		jbyte *encrypt_buf = vid_read_head_buf_get(&retlen);
+		if (ena_log_verbo)
+			logd("ED Tx encrypt_buf: %p", encrypt_buf);
+		if (encrypt_buf == NULL)
+		{
+			return (0);
+		}
 
-  jint Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeEncryptionPipelineEnqueue  (JNIEnv * env, jobject thiz, jobject bBuf, jint idx, jint len) { // Return len
-    int retlen = -1;
-    if (en_dump_data)
-      logd_jbytebu (env, "TX: ", bBuf, idx, len, "AA");
-    if (neuter) {
-      jbyte * encrypt_buf = vid_write_tail_buf_get (len);
-      if (ena_log_verbo)
-        logd ("EE Tx encrypt_buf: %p", encrypt_buf);
-      if (encrypt_buf == NULL) {
-        return (0);
-      }
+		jbyte *buf = (jbyte *)(*env)->GetDirectBufferAddress(env, bBuf); // ByteBuffer must be created using an allocateDirect() factory method
+		// logd ("EncryptionPipelineDequeue buf: %p  len: %d", buf, len);
+		if (len > MAX_BUF)
+		{
+			loge("EncryptionPipelineDequeue len too large");
+			return (-1);
+		}
+		memcpy(buf, encrypt_buf, retlen);
+		if (ena_log_verbo)
+			logd("ED Tx encrypted retlen: %d", retlen);
+		if (en_dump_data && ena_log_verbo)
+			hex_dump("ED Tx encrypt_buf: ", 16, encrypt_buf, retlen);
+		return (retlen);
+	}
 
-      jbyte * buf = (jbyte *) (* env)->GetDirectBufferAddress (env, bBuf);// ByteBuffer must be created using an allocateDirect() factory method
-      //logd ("EncryptionPipelineEnqueue buf: %p  idx: %d  len: %d", buf, idx, len);
-      if (len > MAX_BUF) {
-        loge ("EncryptionPipelineEnqueue len too large");
-        return (-1);
-      }
-      memcpy (encrypt_buf, & buf [idx], len);
-      if (en_dump_data && ena_log_verbo)
-        hex_dump ("TX: ", 16, encrypt_buf, len);
-        //logd_jbytebu (env, "Tx: ", bBuf, idx, len, "AA");
-      return (len);
-    }
-
-    if (Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeEncryptionPipelineEnqueue_o)
-      retlen = Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeEncryptionPipelineEnqueue_o (env, thiz, bBuf, idx, len);
-    else
-      loge ("NO %s", __func__);
-    if (ena_log_verbo)
-      logd ("EE Tx retlen: %d", retlen);
-    return (retlen);
-  }
-
-  jint Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeEncryptionPipelineDequeue (JNIEnv * env, jobject thiz, jobject bBuf, jint len) {           // Return len
-    if (ena_log_verbo)
-      logd ("ED Tx passed len: %d", len);
-    if (neuter) {
-      int retlen = -1;
-      jbyte * encrypt_buf = vid_read_head_buf_get (& retlen);
-      if (ena_log_verbo)
-        logd ("ED Tx encrypt_buf: %p", encrypt_buf);
-      if (encrypt_buf == NULL) {
-        return (0);
-      }
-
-      jbyte * buf = (jbyte *) (* env)->GetDirectBufferAddress (env, bBuf);// ByteBuffer must be created using an allocateDirect() factory method
-      //logd ("EncryptionPipelineDequeue buf: %p  len: %d", buf, len);
-      if (len > MAX_BUF) {
-        loge ("EncryptionPipelineDequeue len too large");
-        return (-1);
-      }
-      memcpy (buf, encrypt_buf, retlen);
-      if (ena_log_verbo)
-        logd ("ED Tx encrypted retlen: %d", retlen);
-      if (en_dump_data && ena_log_verbo)
-        hex_dump ("ED Tx encrypt_buf: ", 16, encrypt_buf, retlen);
-      return (retlen);
-    }
-
-    int retlen = -1;
-    if (Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeEncryptionPipelineDequeue_o)
-      retlen = Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeEncryptionPipelineDequeue_o (env, thiz, bBuf, len);
-    else
-      loge ("NO %s", __func__);
-    if (ena_log_verbo)
-      logd ("ED Tx encrypted retlen: %d", retlen);
-    return (len);
-  }
-
+	int retlen = -1;
+	if (Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeEncryptionPipelineDequeue_o)
+		retlen = Java_com_google_android_gms_car_senderprotocol_SslWrapper_nativeEncryptionPipelineDequeue_o(env, thiz, bBuf, len);
+	else
+		loge("NO %s", __func__);
+	if (ena_log_verbo)
+		logd("ED Tx encrypted retlen: %d", retlen);
+	return (len);
+}

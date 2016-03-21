@@ -1,31 +1,30 @@
 
-  #include <openssl/bio.h>
-  #include <openssl/ssl.h>
-  #include <openssl/err.h>
-  #include <openssl/pem.h>
-  #include <openssl/x509.h>
-  #include <openssl/x509_vfy.h>
+#include <openssl/bio.h>
+#include <openssl/ssl.h>
+#include <openssl/err.h>
+#include <openssl/pem.h>
+#include <openssl/x509.h>
+#include <openssl/x509_vfy.h>
 
-  //SSL_METHOD  * hu_ssl_method  = NULL;
-  //SSL_CTX     * hu_ssl_ctx     = NULL;
-  extern SSL         * hu_ssl_ssl   ;//  = NULL;
-  extern BIO         * hu_ssl_rm_bio;//  = NULL;
-  extern BIO         * hu_ssl_wm_bio;//  = NULL;
+// SSL_METHOD  * hu_ssl_method  = NULL;
+// SSL_CTX     * hu_ssl_ctx     = NULL;
+extern SSL *hu_ssl_ssl;    //  = NULL;
+extern BIO *hu_ssl_rm_bio; //  = NULL;
+extern BIO *hu_ssl_wm_bio; //  = NULL;
 
-  void hu_ssl_ret_log (int ret);
+void hu_ssl_ret_log(int ret);
 
-  int hu_ssl_handshake ();
+int hu_ssl_handshake();
 
+// Internal:
 
-  // Internal:
+#ifdef MR_SSL_INTERNAL
+// 2048 bits,  Signature Algorithm: sha256WithRSAEncryption
 
-#ifdef  MR_SSL_INTERNAL
-  // 2048 bits,  Signature Algorithm: sha256WithRSAEncryption
+#define cert_buf hu_ssl_cert_mr_buf
+#define pkey_buf hu_ssl_pkey_mr_buf
 
-  #define cert_buf  hu_ssl_cert_mr_buf
-  #define pkey_buf  hu_ssl_pkey_mr_buf
-
-    char hu_ssl_cert_mr_buf [] = "-----BEGIN CERTIFICATE-----\n\
+char hu_ssl_cert_mr_buf[] = "-----BEGIN CERTIFICATE-----\n\
 MIIDXTCCAkWgAwIBAgIJAN5RMTidgcQYMA0GCSqGSIb3DQEBCwUAMEUxCzAJBgNV\n\
 BAYTAkFVMRMwEQYDVQQIDApTb21lLVN0YXRlMSEwHwYDVQQKDBhJbnRlcm5ldCBX\n\
 aWRnaXRzIFB0eSBMdGQwHhcNMTUwNTIwMDExMDAxWhcNMTUwNTIxMDExMDAxWjBF\n\
@@ -47,7 +46,7 @@ PK4ncPq+VUu2Hct88iy8K8am5iV32dbsNU74AttYi+WscV45dtWfWCD9qPCPl3DS\n\
 WQ==\n\
 -----END CERTIFICATE-----\n";
 
-    char hu_ssl_pkey_mr_buf [] = "-----BEGIN RSA PRIVATE KEY-----\n\
+char hu_ssl_pkey_mr_buf[] = "-----BEGIN RSA PRIVATE KEY-----\n\
 MIIEowIBAAKCAQEAyXh5TWY7hG1v4+c5aoMu/1vFJ+N9xM0+IjY74ozOqRvl8K6a\n\
 Su+woJB0eCk5JkTYAbZnp7izzGEClDVLZyR381Sm2QPZT7JbfVIT+xEhALxchIXv\n\
 65Wrr+ogeP4B/RFk2SQ0wikaM1xVwfJaSLUNDZVVAFmR4czlav1C5FhVJzK6xXl0\n\
@@ -75,5 +74,4 @@ Pf9wyuNGoUoGnjXoaiE4MgLddXPtIDkfSrvZjOlnF8sZDWf77gEbKmroq/Dlx/Rg\n\
 q99fN5L3n8j85Sw21/JO/FIwBZhUNb1Fh3ddFpMnFkBf3LZj1kJh\n\
 -----END RSA PRIVATE KEY-----\n";
 
-#endif  //#ifdef  MR_SSL_INTERNAL
-
+#endif //#ifdef  MR_SSL_INTERNAL
