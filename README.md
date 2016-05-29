@@ -1,5 +1,7 @@
 # Unofficial Mazda Connect (tm) (*) Android Auto Headunit App
 
+[![Join the chat at https://gitter.im/xenosap1en/headunit](https://badges.gitter.im/xenosap1en/headunit.svg)](https://gitter.im/xenosap1en/headunit?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
+
 Unofficial port of Android Auto Headunit App to Mazda Connect CMU. The app makes extensive use of jni functions that were originally developed by Mike Reid as part of his Android app (see below). The Mazda specific source code is under the /mazda folder.
 
 See the [Mazda3 Revolution] thread for details. 
